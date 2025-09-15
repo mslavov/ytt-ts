@@ -1,0 +1,17 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:template", "template")
+
+#@ allowed_supervisors = {
+#@  "us-east-1": ["us-east-1a", "us-east-2a"],
+#@  "us-west-1": "*",
+#@ }
+
+---
+apiVersion: "v1"
+kind: "ServiceAccount"
+metadata:
+  name: "secret-generator"
+  labels:
+    app.kubernetes.io/component: "secret-generator"
+    skiff-role-name: "secret-generator"
+

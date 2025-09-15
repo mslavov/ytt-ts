@@ -3,6 +3,42 @@ import { NodeType, AnnotationType } from '../src/types';
 
 describe('YTTParser', () => {
   describe('parse', () => {
+    it('should parse multi-line variable definitions', () => {
+      const input = `#@ load("@ytt:data", "data")
+#@ load("@ytt:template", "template")
+
+#@ allowed_supervisors = {
+#@  "us-east-1": ["us-east-1a", "us-east-2a"],
+#@  "us-west-1": "*",
+#@ }
+
+---
+apiVersion: v1
+kind: ServiceAccount`;
+
+      const result = YTT.parse(input);
+
+      expect(result.type).toBe(NodeType.DOCUMENT);
+      expect(result.annotations).toHaveLength(3);
+
+      // Check load annotations
+      expect(result.annotations[0].type).toBe(AnnotationType.LOAD);
+      expect(result.annotations[0].value).toBe('load("@ytt:data", "data")');
+      expect(result.annotations[1].type).toBe(AnnotationType.LOAD);
+      expect(result.annotations[1].value).toBe('load("@ytt:template", "template")');
+
+      // Check multi-line variable definition
+      expect(result.annotations[2].type).toBe(AnnotationType.CODE);
+      expect(result.annotations[2].value).toContain('allowed_supervisors = {');
+      expect(result.annotations[2].value).toContain('"us-east-1": ["us-east-1a", "us-east-2a"]');
+      expect(result.annotations[2].value).toContain('"us-west-1": "*"');
+      expect(result.annotations[2].value).toContain('}');
+
+      // Verify it's a single multi-line annotation, not multiple separate ones
+      const lines = result.annotations[2].value.split('\n');
+      expect(lines.length).toBe(4);
+    });
+
     it('should parse a simple YTT template with data value', () => {
       const input = `#@ load("@ytt:data", "data")
 ---

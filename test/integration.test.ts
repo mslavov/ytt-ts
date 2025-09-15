@@ -2,6 +2,34 @@ import { YTT } from '../src';
 
 describe('Integration Tests', () => {
   describe('Round-trip tests', () => {
+    it('should preserve multi-line variable definitions through parse and stringify', () => {
+      const input = `#@ load("@ytt:data", "data")
+#@ load("@ytt:template", "template")
+#@ allowed_supervisors = {
+#@  "us-east-1": ["us-east-1a", "us-east-2a"],
+#@  "us-west-1": "*",
+#@ }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: secret-generator`;
+
+      const ast = YTT.parse(input);
+      const output = YTT.stringify(ast);
+
+      // Check that the output preserves the multi-line structure
+      expect(output).toContain('#@ allowed_supervisors = {');
+      expect(output).toContain('#@  "us-east-1": ["us-east-1a", "us-east-2a"],');
+      expect(output).toContain('#@  "us-west-1": "*",');
+      expect(output).toContain('#@ }');
+
+      // Parse the output again to ensure it's valid
+      const ast2 = YTT.parse(output);
+      expect(ast2.annotations).toHaveLength(3);
+      expect(ast2.annotations[2].value).toBe(ast.annotations[2].value);
+    });
+
     it('should preserve simple YTT template through parse and stringify', () => {
       const input = `#@ load("@ytt:data", "data")
 ---

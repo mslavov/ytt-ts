@@ -27,7 +27,15 @@ export class YTTStringifier {
 
     if (ast.annotations && ast.annotations.length > 0) {
       for (const annotation of ast.annotations) {
-        lines.push(`#@ ${annotation.value}`);
+        // Handle multi-line annotations
+        if (annotation.value.includes('\n')) {
+          const annotationLines = annotation.value.split('\n');
+          for (const line of annotationLines) {
+            lines.push(`#@ ${line}`);
+          }
+        } else {
+          lines.push(`#@ ${annotation.value}`);
+        }
       }
     }
 

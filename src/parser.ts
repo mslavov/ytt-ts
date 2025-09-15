@@ -4,6 +4,7 @@ import {
   ASTNode,
   NodeType,
   Annotation,
+  AnnotationType,
   MapNode,
   ArrayNode,
   ScalarNode,
@@ -61,11 +62,22 @@ export class YTTParser {
       }
 
       if (!inYAMLSection && isYTTAnnotation(line)) {
-        const annotation = parseAnnotation(line);
-        if (annotation) {
-          documentAnnotations.push(annotation);
+        // Check if this starts a multi-line block
+        const multiLineAnnotation = this.extractMultiLineAnnotation(lines, i);
+        if (multiLineAnnotation) {
+          documentAnnotations.push(multiLineAnnotation.annotation);
+          // Clear the lines and skip ahead
+          for (let j = i; j <= multiLineAnnotation.endIndex; j++) {
+            lines[j] = '';
+          }
+          i = multiLineAnnotation.endIndex;
+        } else {
+          const annotation = parseAnnotation(line);
+          if (annotation) {
+            documentAnnotations.push(annotation);
+          }
+          lines[i] = '';
         }
-        lines[i] = '';
       } else if (inYAMLSection && isYTTAnnotation(line)) {
         const annotation = parseAnnotation(line);
         if (annotation) {
@@ -82,6 +94,64 @@ export class YTTParser {
       yamlContent,
       inlineAnnotations
     };
+  }
+
+  private extractMultiLineAnnotation(lines: string[], startIndex: number): { annotation: Annotation; endIndex: number } | null {
+    const firstLine = lines[startIndex];
+    const match = firstLine.match(/^\s*#@\s+(.+)$/);
+    if (!match) return null;
+
+    const content = match[1];
+
+    // Check if this line starts a multi-line block (ends with { or has = { pattern)
+    if (!content.includes('=') || (!content.endsWith('{') && !content.includes('= {'))) {
+      return null;
+    }
+
+    // Find the end of the block by counting braces
+    let braceCount = (content.match(/\{/g) || []).length - (content.match(/\}/g) || []).length;
+    let endIndex = startIndex;
+    const blockLines = [content];
+
+    // If braces are balanced on first line, it's not a multi-line block
+    if (braceCount === 0 && content.includes('}')) {
+      return null;
+    }
+
+    // Look for continuation lines
+    for (let i = startIndex + 1; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Stop if we hit a non-annotation line or document separator
+      if (!isYTTAnnotation(line) || isDocumentSeparator(line)) {
+        break;
+      }
+
+      const lineMatch = line.match(/^\s*#@\s?(.*)$/);
+      if (lineMatch) {
+        const lineContent = lineMatch[1];
+        blockLines.push(lineContent);
+        braceCount += (lineContent.match(/\{/g) || []).length - (lineContent.match(/\}/g) || []).length;
+        endIndex = i;
+
+        if (braceCount === 0) {
+          break;
+        }
+      }
+    }
+
+    // Only treat as multi-line if we found multiple lines
+    if (blockLines.length > 1) {
+      return {
+        annotation: {
+          type: AnnotationType.CODE,
+          value: blockLines.join('\n')
+        },
+        endIndex
+      };
+    }
+
+    return null;
   }
 
   private parseYAMLContent(yamlContent: string, inlineAnnotations: Map<number, Annotation>): ASTNode | null {
