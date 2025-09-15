@@ -162,4 +162,4 @@ const yttString = YTT.stringify(ast);
 
 ## License
 
-ISC
+MIT
