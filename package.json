@@ -13,10 +13,18 @@
   "files": [
     "dist/**/*"
   ],
-  "keywords": [],
-  "author": "",
+  "keywords": ["ytt", "yaml", "templating", "parser", "stringifier", "ast", "typescript", "carvel"],
+  "author": "mslavov",
   "license": "MIT",
-  "description": "",
+  "description": "TypeScript library for parsing and stringifying YTT (YAML Templating Tool) templates",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mslavov/ytt-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mslavov/ytt-ts/issues"
+  },
+  "homepage": "https://github.com/mslavov/ytt-ts#readme",
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^24.4.0",
